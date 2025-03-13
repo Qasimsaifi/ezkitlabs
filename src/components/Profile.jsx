@@ -131,7 +131,7 @@ const UserProfilePage = () => {
     setIsLoadingWishlist(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/orders/my-orderswishlist`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/orders/wishlist`,
         {
           method: "GET",
           credentials: "include",
