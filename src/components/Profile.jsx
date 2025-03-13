@@ -106,7 +106,7 @@ const UserProfilePage = () => {
     setIsLoadingOrders(true);
     try {
       const response = await fetch(
-        "http://localhost:5000/api/orders/my-orders",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/orders/my-orders`,
         {
           method: "GET",
           credentials: "include",
@@ -130,10 +130,13 @@ const UserProfilePage = () => {
   const fetchWishlist = async () => {
     setIsLoadingWishlist(true);
     try {
-      const response = await fetch("http://localhost:5000/api/wishlist", {
-        method: "GET",
-        credentials: "include",
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/orders/my-orderswishlist`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
