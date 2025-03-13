@@ -1,23 +1,28 @@
-// src/components/AuthProvider.jsx
-import { getProfile } from "@/lib/auth";
+"use client";
+
+import { useState, useEffect } from "react";
 import Navbar from "@/components/sections/navbar/default";
-import { cookies } from "next/headers";
+import { getProfile } from "@/lib/auth";
 
-export default async function AuthProvider() {
-  let isAuthenticated = false;
-  let user = null;
+export default function AuthProvider() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
 
-  try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("token");
-    // console.log(sessionCookie);
-    if (sessionCookie) {
-      user = await getProfile(sessionCookie.value);
-      isAuthenticated = !!user;
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        // Assume getProfile can access the token on its own without explicitly passing it
+        const userData = await getProfile();
+        setUser(userData);
+        setIsAuthenticated(!!userData);
+      } catch (error) {
+        console.error("Failed to fetch profile:", error);
+        setIsAuthenticated(false);
+      }
     }
-  } catch (error) {
-    console.error("Failed to fetch profile:", error);
-  }
+
+    fetchProfile();
+  }, []);
 
   return <Navbar isAuthenticated={isAuthenticated} />;
 }
