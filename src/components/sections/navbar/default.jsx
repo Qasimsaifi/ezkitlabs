@@ -36,10 +36,16 @@ export default function Navbar({ isAuthenticated: initialAuthState = false }) {
 
   const handleLogout = async () => {
     try {
-      const res = await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
+      console.log(
+        `Calling: ${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`
+      );
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
 
       if (res.ok) {
         setIsAuthenticated(false);
