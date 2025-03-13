@@ -1,0 +1,22 @@
+meta {
+  name: get
+  type: http
+  seq: 2
+}
+
+get {
+  url: https://ezkitbackend.vercel.app/api/products
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: 2F0AQSTgQFQFJqT7qGZ94Nq-J3VZdORwjCkat07lZbsDUoBZLvhD1FhssCZgAF2c6DqTuy3sw
+}
+
+body:json {
+  {
+    "email":"kasimytcreatio1n@gmail.com",
+    "password":"kasimytcreatio1n@gmail.com"
+  }
+}

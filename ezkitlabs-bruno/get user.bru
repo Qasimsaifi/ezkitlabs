@@ -1,0 +1,22 @@
+meta {
+  name: get user
+  type: http
+  seq: 3
+}
+
+get {
+  url: https://ezkitbackend.vercel.app/users/profile
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3Yzc0NWEzNmViNGI1NzE1NzYzNmM3YiIsInJvbGUiOiJjdXN0b21lciIsImlhdCI6MTc0MTQ1MDQwMiwiZXhwIjoxNzY0MzQ2NDAyfQ.eLj0P9y_2bOKVc78flmwmJSak3G7FIYYgigW8d1Wo7k
+}
+
+body:json {
+  {
+    "productId":"67cb17d817d325f363834d01"
+    
+  }
+}
