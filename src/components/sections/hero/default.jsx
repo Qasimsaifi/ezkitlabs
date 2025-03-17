@@ -85,7 +85,7 @@ const Hero = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Package className="text-green-400" size={20} />
-                <span className="text-gray-300">Free shipping over $50</span>
+                <span className="text-gray-300">Free shipping over ₹999</span>
               </div>
             </div>
           </div>

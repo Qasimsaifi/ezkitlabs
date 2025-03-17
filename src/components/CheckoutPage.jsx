@@ -1,29 +1,16 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Loader2,
   CreditCard,
@@ -31,7 +18,9 @@ import {
   Plus,
   Minus,
   Check,
-  Wallet,
+  Home,
+  Building2,
+  MapPin,
 } from "lucide-react";
 import {
   Select,
@@ -40,67 +29,222 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+
+import { getCart } from "@/lib/cartUtils";
+import { addressApi, validateAddress, indianStates } from "@/lib/addressApi";
 
 const CheckoutPage = () => {
   const [loading, setLoading] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("card");
-  const [cart, setCart] = useState([
-    {
-      id: 1,
-      name: "Smart Home Automation Starter Kit",
-      price: 89.99,
-      quantity: 1,
-      image:
-        "https://cdn.pixabay.com/photo/2015/12/07/01/38/arduino-1080213_1280.jpg",
-    },
-    {
-      id: 2,
-      name: "Arduino Weather Station DIY Kit",
-      price: 49.99,
-      quantity: 2,
-      image:
-        "https://cdn.pixabay.com/photo/2015/12/07/01/38/arduino-1080213_1280.jpg",
-    },
-    {
-      id: 3,
-      name: "Raspberry Pi Robot Essentials",
-      price: 129.99,
-      quantity: 1,
-      image:
-        "https://cdn.pixabay.com/photo/2015/12/07/01/38/arduino-1080213_1280.jpg",
-    },
-  ]);
+  const [cart, setCart] = useState([]);
+  const [addresses, setAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [subtotal, setSubtotal] = useState(0);
+  const [shipping, setShipping] = useState(40);
+  const [discount, setDiscount] = useState(0);
+  const [total, setTotal] = useState(0);
 
-  const updateQuantity = (id, change) => {
-    setCart(
-      cart.map((item) =>
-        item.id === id
+  // Fetch cart and addresses when component mounts
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        console.log("Starting data fetch");
+
+        // Fetch cart items
+        console.log("Fetching cart data");
+        const cartResponse = await getCart();
+        console.log("Cart response received:", cartResponse);
+
+        // Safely handle cart data
+        let cartItems = [];
+        if (cartResponse) {
+          if (Array.isArray(cartResponse)) {
+            cartItems = cartResponse;
+          } else if (typeof cartResponse === "object") {
+            cartItems = cartResponse.items || [];
+          }
+        }
+        console.log("Processed cart items:", cartItems);
+
+        // Set cart state with safely processed data
+        setCart(cartItems);
+
+        // Safely calculate subtotal
+        console.log("Calculating subtotal");
+        let calculatedSubtotal = 0;
+        if (Array.isArray(cartItems) && cartItems.length > 0) {
+          calculatedSubtotal = cartItems.reduce((total, item) => {
+            const price =
+              item && typeof item.product.price === "number"
+                ? item.product.price
+                : 0;
+            const quantity =
+              item && typeof item.quantity === "number" ? item.quantity : 0;
+            return total + price * quantity;
+          }, 0);
+        }
+        console.log("Calculated subtotal:", calculatedSubtotal);
+        setSubtotal(calculatedSubtotal);
+
+        // Calculate discount
+        console.log("Calculating discount");
+        const calculatedDiscount = calculatedSubtotal > 15000 ? 1000 : 0;
+        console.log("Calculated discount:", calculatedDiscount);
+        setDiscount(calculatedDiscount);
+
+        // Calculate total
+        console.log("Calculating total with shipping:", shipping);
+        const calculatedTotal =
+          calculatedSubtotal + (shipping || 0) - calculatedDiscount;
+        console.log("Calculated total:", calculatedTotal);
+        setTotal(calculatedTotal);
+
+        // Fetch user addresses
+        console.log("Fetching addresses");
+        const addressResponse = await addressApi.getAllAddresses();
+        console.log("Address response received:", addressResponse);
+
+        // Safely process address data
+        if (addressResponse === undefined || addressResponse === null) {
+          console.log("Address response is undefined or null");
+          setAddresses([]);
+        } else if (!Array.isArray(addressResponse)) {
+          console.log(
+            "Address response is not an array:",
+            typeof addressResponse
+          );
+          setAddresses([]);
+        } else {
+          console.log(
+            "Setting addresses array of length:",
+            addressResponse.length
+          );
+          setAddresses(addressResponse);
+
+          // Only try to set selected address if we have valid addresses
+          if (addressResponse.length > 0) {
+            const firstAddress = addressResponse[0];
+            console.log("First address:", firstAddress);
+
+            if (firstAddress && firstAddress._id) {
+              console.log("Setting selected address ID:", firstAddress._id);
+              setSelectedAddressId(firstAddress._id);
+            } else {
+              console.log("First address does not have _id property");
+            }
+          } else {
+            console.log("No addresses available");
+          }
+        }
+      } catch (error) {
+        console.error("Error in fetchData:", error);
+        // Initialize with empty values in case of error
+        setCart([]);
+        setSubtotal(0);
+        setDiscount(0);
+        setTotal(shipping || 0);
+        setAddresses([]);
+      }
+    };
+
+    console.log("UseEffect running");
+    fetchData();
+  }, [shipping]);
+
+  const updateQuantity = async (id, change) => {
+    try {
+      // Update cart item quantity
+      const updatedCart = cart.map((item) =>
+        item._id === id
           ? { ...item, quantity: Math.max(1, item.quantity + change) }
           : item
-      )
-    );
+      );
+      setCart(updatedCart);
+
+      // Recalculate totals
+      const newSubtotal = updatedCart.reduce(
+        (total, item) => total + item.product.price * item.quantity,
+        0
+      );
+      setSubtotal(newSubtotal);
+
+      const newDiscount = newSubtotal > 15000 ? 1000 : 0;
+      setDiscount(newDiscount);
+
+      setTotal(newSubtotal + shipping - newDiscount);
+
+      // Here you would typically call an API to update the cart in the database
+    } catch (error) {
+      console.error("Error updating quantity:", error);
+    }
   };
 
-  const calculateSubtotal = () => {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
-  };
-
-  const subtotal = calculateSubtotal();
-  const shipping = 4.99;
-  const discount = subtotal > 200 ? 15 : 0;
-  const total = subtotal + shipping - discount;
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      // Get selected address details
+      const selectedAddress = addresses.find(
+        (addr) => addr._id === selectedAddressId
+      );
+
+      if (!selectedAddress) {
+        throw new Error("Please select a shipping address");
+      }
+
+      // Prepare shipping address object
+      const shippingAddress = {
+        addressType: selectedAddress.addressType,
+        addressLine1: selectedAddress.addressLine1,
+        addressLine2: selectedAddress.addressLine2 || "",
+        landmark: selectedAddress.landmark || "",
+        city: selectedAddress.city,
+        district: selectedAddress.district || "",
+        state: selectedAddress.state,
+        pincode: selectedAddress.pincode,
+        country: selectedAddress.country || "India",
+      };
+
+      // Send order details to API
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/orders`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            shippingAddress,
+            // Cart items will be fetched from user's session on the backend
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to place order");
+      }
+
+      // Parse the JSON response to get the actual data
+      const data = await response.json();
+      console.log("Order response data:", data);
+
+      // If there's a payment link, redirect to it
+      if (data.paymentLink) {
+        window.location.href = data.paymentLink;
+        return; // Exit the function early to prevent setting orderComplete
+      }
+
+      // Only reach here if no payment link (e.g., for free orders)
       setOrderComplete(true);
-    }, 2000);
+    } catch (error) {
+      console.error("Error placing order:", error);
+      alert(error.message || "There was a problem placing your order");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Animation variants
@@ -131,6 +275,7 @@ const CheckoutPage = () => {
     },
   };
 
+  // Display order confirmation screen
   if (orderComplete) {
     return (
       <div className="container mx-auto py-16 px-4 flex items-center justify-center min-h-screen">
@@ -200,96 +345,80 @@ const CheckoutPage = () => {
                     Shipping Information
                   </CardTitle>
                   <CardDescription>
-                    Enter your shipping details to receive your EZKIT products
+                    Select your delivery address
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="fullName">
-                        Full Name
-                      </label>
-                      <Input id="fullName" placeholder="John Doe" required />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="email">
-                        Email
-                      </label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="john@example.com"
-                        required
-                      />
-                    </div>
-                  </div>
+                <CardContent>
+                  {addresses.length > 0 ? (
+                    <div className="space-y-4">
+                      <RadioGroup
+                        value={selectedAddressId}
+                        onValueChange={setSelectedAddressId}
+                      >
+                        {addresses.map((address) => (
+                          <div
+                            key={address._id}
+                            className={`flex items-start space-x-2 rounded-md border p-4 ${
+                              selectedAddressId === address._id
+                                ? "border-primary"
+                                : ""
+                            }`}
+                          >
+                            <RadioGroupItem
+                              value={address._id}
+                              id={`address-${address._id}`}
+                              className="mt-1"
+                            />
+                            <label
+                              htmlFor={`address-${address._id}`}
+                              className="flex flex-1 cursor-pointer flex-col"
+                            >
+                              <div className="flex items-center gap-2">
+                                {address.addressType === "home" ? (
+                                  <Home size={16} />
+                                ) : address.addressType === "work" ? (
+                                  <Building2 size={16} />
+                                ) : (
+                                  <MapPin size={16} />
+                                )}
+                                <span className="font-medium capitalize">
+                                  {address.addressType} Address
+                                </span>
+                              </div>
+                              <div className="mt-2 text-sm text-muted-foreground">
+                                <p>{address.addressLine1}</p>
+                                {address.addressLine2 && (
+                                  <p>{address.addressLine2}</p>
+                                )}
+                                {address.landmark && (
+                                  <p>Landmark: {address.landmark}</p>
+                                )}
+                                <p>
+                                  {address.city}, {address.state},{" "}
+                                  {address.pincode}
+                                </p>
+                              </div>
+                            </label>
+                          </div>
+                        ))}
+                      </RadioGroup>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="phone">
-                        Phone Number
-                      </label>
-                      <Input
-                        id="phone"
-                        placeholder="+1 (555) 123-4567"
-                        required
-                      />
+                      <Button variant="outline" className="w-full mt-4">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add New Address
+                      </Button>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="country">
-                        Country
-                      </label>
-                      <Select defaultValue="us">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select country" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="us">United States</SelectItem>
-                          <SelectItem value="ca">Canada</SelectItem>
-                          <SelectItem value="uk">United Kingdom</SelectItem>
-                          <SelectItem value="au">Australia</SelectItem>
-                        </SelectContent>
-                      </Select>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground mb-4">
+                        No addresses found
+                      </p>
+                      <Button>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add New Address
+                      </Button>
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="address">
-                      Street Address
-                    </label>
-                    <Input id="address" placeholder="123 Main St" required />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="city">
-                        City
-                      </label>
-                      <Input id="city" placeholder="San Francisco" required />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="state">
-                        State / Province
-                      </label>
-                      <Input id="state" placeholder="California" required />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="zipCode">
-                        ZIP / Postal Code
-                      </label>
-                      <Input id="zipCode" placeholder="94103" required />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="saveAddress" />
-                    <label
-                      htmlFor="saveAddress"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Save this address for future orders
-                    </label>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -302,112 +431,17 @@ const CheckoutPage = () => {
                     Payment Method
                   </CardTitle>
                   <CardDescription>
-                    Choose your preferred payment method
+                    Payment will be processed securely via Razorpay
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <RadioGroup
-                    defaultValue="card"
-                    value={paymentMethod}
-                    onValueChange={setPaymentMethod}
-                    className="space-y-4"
-                  >
-                    <div className="flex items-center space-x-2 rounded-md border p-4">
-                      <RadioGroupItem value="card" id="card" />
-                      <label
-                        htmlFor="card"
-                        className="flex flex-1 cursor-pointer items-center justify-between"
-                      >
-                        <div className="font-medium">Credit / Debit Card</div>
-                        <div className="flex gap-1">
-                          <div className="h-6 w-10 rounded bg-primary/10"></div>
-                          <div className="h-6 w-10 rounded bg-primary/10"></div>
-                        </div>
-                      </label>
-                    </div>
-
-                    <div className="flex items-center space-x-2 rounded-md border p-4">
-                      <RadioGroupItem value="upi" id="upi" />
-                      <label
-                        htmlFor="upi"
-                        className="flex flex-1 cursor-pointer items-center justify-between"
-                      >
-                        <div className="font-medium">UPI / Wallets</div>
-                        <Wallet size={20} className="text-muted-foreground" />
-                      </label>
-                    </div>
-
-                    <div className="flex items-center space-x-2 rounded-md border p-4">
-                      <RadioGroupItem value="cod" id="cod" />
-                      <label
-                        htmlFor="cod"
-                        className="flex flex-1 cursor-pointer"
-                      >
-                        <div className="font-medium">Cash on Delivery</div>
-                      </label>
-                    </div>
-                  </RadioGroup>
-
-                  {paymentMethod === "card" && (
-                    <div className="mt-6 space-y-6">
-                      <div className="space-y-2">
-                        <label
-                          className="text-sm font-medium"
-                          htmlFor="cardNumber"
-                        >
-                          Card Number
-                        </label>
-                        <Input
-                          id="cardNumber"
-                          placeholder="1234 5678 9012 3456"
-                          required
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <label
-                            className="text-sm font-medium"
-                            htmlFor="expiryDate"
-                          >
-                            Expiry Date
-                          </label>
-                          <Input id="expiryDate" placeholder="MM/YY" required />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium" htmlFor="cvv">
-                            CVV
-                          </label>
-                          <Input id="cvv" placeholder="123" required />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label
-                          className="text-sm font-medium"
-                          htmlFor="nameOnCard"
-                        >
-                          Name on Card
-                        </label>
-                        <Input
-                          id="nameOnCard"
-                          placeholder="John Doe"
-                          required
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {paymentMethod === "upi" && (
-                    <div className="mt-6 space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium" htmlFor="upiId">
-                          UPI ID
-                        </label>
-                        <Input id="upiId" placeholder="username@upi" required />
-                      </div>
-                    </div>
-                  )}
+                  <div className="rounded-md bg-primary/10 p-4 text-sm">
+                    <p className="font-medium">Secure Payment</p>
+                    <p className="text-muted-foreground mt-1">
+                      You'll be redirected to Razorpay to complete your payment
+                      after placing the order
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -422,13 +456,13 @@ const CheckoutPage = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {cart.map((item) => (
-                    <div key={item.id} className="flex justify-between">
+                    <div key={item._id} className="flex justify-between">
                       <div className="flex items-center gap-2">
                         <div className="text-sm">{item.quantity}x</div>
                         <div className="text-sm font-medium">{item.name}</div>
                       </div>
                       <div className="font-medium">
-                        ${(item.price * item.quantity).toFixed(2)}
+                        ₹{(item.product.price * item.quantity).toFixed(2)}
                       </div>
                     </div>
                   ))}
@@ -438,21 +472,21 @@ const CheckoutPage = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Subtotal</span>
-                      <span>${subtotal.toFixed(2)}</span>
+                      <span>₹{subtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Shipping</span>
-                      <span>${shipping.toFixed(2)}</span>
+                      <span>₹{shipping.toFixed(2)}</span>
                     </div>
                     {discount > 0 && (
                       <div className="flex justify-between text-sm text-green-600">
                         <span>Discount</span>
-                        <span>-${discount.toFixed(2)}</span>
+                        <span>-₹{discount.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between font-bold">
                       <span>Total</span>
-                      <span>${total.toFixed(2)}</span>
+                      <span>₹{total.toFixed(2)}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -460,14 +494,18 @@ const CheckoutPage = () => {
             </motion.div>
 
             <motion.div variants={itemVariants}>
-              <Button type="submit" className="w-full py-6" disabled={loading}>
+              <Button
+                type="submit"
+                className="w-full py-6"
+                disabled={loading || addresses.length === 0}
+              >
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Processing...
                   </>
                 ) : (
-                  `Place Order • $${total.toFixed(2)}`
+                  `Place Order • ₹${total.toFixed(2)}`
                 )}
               </Button>
             </motion.div>
@@ -492,23 +530,23 @@ const CheckoutPage = () => {
               </CardHeader>
               <CardContent className="space-y-6">
                 {cart.map((item) => (
-                  <div key={item.id} className="flex gap-4">
+                  <div key={item.product._id} className="flex gap-4">
                     <img
-                      src={item.image}
-                      alt={item.name}
+                      src={item.product.images[0]}
+                      alt={item.product.name}
                       className="h-16 w-24 rounded-md object-cover"
                     />
                     <div className="flex-1">
                       <h3 className="font-medium line-clamp-2">{item.name}</h3>
                       <p className="text-sm text-muted-foreground">
-                        ${item.price.toFixed(2)}
+                        ₹{item.product.price.toFixed(2)}
                       </p>
                       <div className="mt-2 flex items-center">
                         <Button
                           variant="outline"
                           size="icon"
                           className="h-7 w-7 rounded-full"
-                          onClick={() => updateQuantity(item.id, -1)}
+                          onClick={() => updateQuantity(item.product._id, -1)}
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
@@ -519,14 +557,14 @@ const CheckoutPage = () => {
                           variant="outline"
                           size="icon"
                           className="h-7 w-7 rounded-full"
-                          onClick={() => updateQuantity(item.id, 1)}
+                          onClick={() => updateQuantity(item.product._id, 1)}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
                     <div className="font-medium">
-                      ${(item.price * item.quantity).toFixed(2)}
+                      ₹{item.product.price * item.quantity}
                     </div>
                   </div>
                 ))}
@@ -535,16 +573,16 @@ const CheckoutPage = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Subtotal</span>
-                      <span>${subtotal.toFixed(2)}</span>
+                      <span>₹{subtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Shipping</span>
-                      <span>${shipping.toFixed(2)}</span>
+                      <span>₹{shipping.toFixed(2)}</span>
                     </div>
                     {discount > 0 && (
                       <div className="flex justify-between text-sm text-green-600">
                         <span>Discount</span>
-                        <span>-${discount.toFixed(2)}</span>
+                        <span>-₹{discount.toFixed(2)}</span>
                       </div>
                     )}
                   </div>
@@ -554,7 +592,7 @@ const CheckoutPage = () => {
 
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>₹{total.toFixed(2)}</span>
                 </div>
 
                 <div className="rounded-md bg-primary/10 p-4 text-sm">
@@ -563,12 +601,18 @@ const CheckoutPage = () => {
                     Standard shipping: 3-5 business days
                   </p>
                   <p className="text-muted-foreground">
-                    Free shipping on orders over $99
+                    Free shipping on orders over ₹999
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Input placeholder="Enter promo code" className="flex-1" />
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      placeholder="Enter promo code"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    />
+                  </div>
                   <Button variant="outline">Apply</Button>
                 </div>
               </CardContent>

@@ -30,6 +30,7 @@ import {
   increaseItemQuantity,
   decreaseItemQuantity,
 } from "@/lib/cartUtils";
+import Link from "next/link";
 
 const CartPage = () => {
   const [isDesktop, setIsDesktop] = useState(true);
@@ -149,33 +150,6 @@ const CartPage = () => {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
     exit: { opacity: 0, x: -100 },
-  };
-
-  const handleCheckout = async () => {
-    try {
-      const response = await fetch("http://localhost:5000/api/orders", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          shippingAddress: {
-            address: "123 St",
-            city: "City",
-            postalCode: "12345",
-            country: "Country",
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      window.location.href = "/dashboard";
-    } catch (err) {
-      console.error("Error processing checkout:", err);
-    }
   };
 
   const renderDesktopView = () => (
@@ -452,10 +426,12 @@ const CartPage = () => {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full" onClick={handleCheckout}>
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Proceed to Checkout
-                </Button>
+                <Link href="/checkout">
+                  <Button className="w-full">
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Proceed to Checkout
+                  </Button>
+                </Link>
               </CardFooter>
             </Card>
           </div>
@@ -473,7 +449,9 @@ const CartPage = () => {
           <p className="mb-6">
             Looks like you haven't added any items to your cart yet.
           </p>
-          <Button>Continue Shopping</Button>
+          <Link href="/products">
+            <Button>Continue Shopping</Button>
+          </Link>
         </motion.div>
       )}
     </div>

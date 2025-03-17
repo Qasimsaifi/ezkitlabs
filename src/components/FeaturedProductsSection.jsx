@@ -121,7 +121,7 @@ export const FeaturedProductsSection = () => {
                     </CardContent>
                   </Link>
                   <CardFooter className="flex justify-between items-center">
-                    <p className="text-white font-bold">${product.price}</p>
+                    <p className="text-white font-bold">₹{product.price}</p>
                     <Button
                       onClick={() => handleAddToCart(product._id)}
                       className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -176,7 +176,7 @@ export const FeaturedProductsSection = () => {
                         </CardDescription>
                       </CardContent>
                       <CardFooter className="flex justify-between items-center">
-                        <p className="text-white font-bold">${product.price}</p>
+                        <p className="text-white font-bold">₹{product.price}</p>
                         <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                           Add to Cart
                         </Button>
@@ -229,7 +229,7 @@ export const FeaturedProductsSection = () => {
                         </CardDescription>
                       </CardContent>
                       <CardFooter className="flex justify-between items-center">
-                        <p className="text-white font-bold">${product.price}</p>
+                        <p className="text-white font-bold">₹{product.price}</p>
                         <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                           Add to Cart
                         </Button>
@@ -282,7 +282,7 @@ export const FeaturedProductsSection = () => {
                         </CardDescription>
                       </CardContent>
                       <CardFooter className="flex justify-between items-center">
-                        <p className="text-white font-bold">${product.price}</p>
+                        <p className="text-white font-bold">₹{product.price}</p>
                         <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                           Add to Cart
                         </Button>

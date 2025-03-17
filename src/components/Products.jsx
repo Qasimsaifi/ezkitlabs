@@ -309,7 +309,7 @@ const ProductsPage = () => {
         <div className="mb-6">
           <div className="flex justify-between mb-2">
             <span>
-              Price Range: ${priceRange[0]} - ${priceRange[1]}
+              Price Range: ₹{priceRange[0]} - ₹{priceRange[1]}
             </span>
           </div>
           <Slider
@@ -362,7 +362,7 @@ const ProductsPage = () => {
                       </CardHeader>
                       <CardContent className="pt-0 pb-4 flex-grow">
                         <p className="text-xl font-bold text-primary">
-                          ${product.price.toFixed(2)}
+                          ₹{product.price.toFixed(2)}
                         </p>
                       </CardContent>
                     </Link>

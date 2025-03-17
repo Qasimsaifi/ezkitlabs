@@ -154,11 +154,6 @@ const UserProfilePage = () => {
     }
   };
 
-  const handleViewOrderDetails = (order) => {
-    setSelectedOrder(order);
-    setOrderDetailsOpen(true);
-  };
-
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -341,20 +336,21 @@ const UserProfilePage = () => {
                               </span>
                             </TableCell>
                             <TableCell className="text-right">
-                              ${order.total.toFixed(2)}
+                              ${order.totalAmount.toFixed(2)}
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleViewOrderDetails(order)}
-                                className="gap-1"
-                              >
-                                <Eye className="h-3.5 w-3.5" />
-                                <span className="hidden sm:inline">
-                                  Details
-                                </span>
-                              </Button>
+                              <Link href={`order-confirmation/${order._id}`}>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                  <span className="hidden sm:inline">
+                                    Details
+                                  </span>
+                                </Button>
+                              </Link>
                             </TableCell>
                           </TableRow>
                         ))}
